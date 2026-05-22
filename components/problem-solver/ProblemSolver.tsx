@@ -8,8 +8,9 @@ import { SubmissionResults } from './SubmissionResults';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles, Brain, AlertTriangle, Play, HelpCircle } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
+import ReactMarkdown from 'react-markdown';
 
 interface ProblemWithStarterCode extends Problem {
   starter_code_js: string;
@@ -54,6 +55,83 @@ export function ProblemSolver({ problem, userSubmissions, user }: ProblemSolverP
   const autoSubmittedRef = useRef(false); // Track if auto-submit has already occurred
   const mountTimeRef = useRef(Date.now());
   const [lastSuccessfulRunCode, setLastSuccessfulRunCode] = useState<string | null>(null);
+
+  // AI Coach States
+  const [coachFeedback, setCoachFeedback] = useState<string | null>(null);
+  const [isCoachLoading, setIsCoachLoading] = useState(false);
+  const [coachError, setCoachError] = useState<string | null>(null);
+  const [isQuotaExceeded, setIsQuotaExceeded] = useState(false);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const loadingSteps = [
+    'Analyzing code syntax and patterns...',
+    'Evaluating time complexity algorithms...',
+    'Profiling memory efficiency...',
+    'Identifying edge-case vulnerabilities...',
+    'Formulating guided hints...'
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isCoachLoading) {
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev + 1) % loadingSteps.length);
+      }, 2000);
+    } else {
+      setLoadingStep(0);
+    }
+    return () => clearInterval(interval);
+  }, [isCoachLoading]);
+
+  const handleAskCoach = async () => {
+    setIsCoachLoading(true);
+    setCoachError(null);
+    setIsQuotaExceeded(false);
+    setCoachFeedback(null);
+    setActiveLeftTab('ai-coach');
+
+    try {
+      const token = await getToken();
+      const response = await fetch('/api/ai-coach', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          problemTitle: problem.title,
+          problemDescription: problem.description,
+          code: code,
+          language: language,
+          errorMessage: runResult?.stderr || runResult?.error || null,
+          runResult: runResult ? {
+            status: runResult.status,
+            time: runResult.time || runResult.runtime,
+            memory: runResult.memory,
+            passedCases: Array.isArray(runResult?.results) 
+              ? runResult.results.filter((r: any) => r.passed).length 
+              : null,
+            totalCases: Array.isArray(runResult?.results) 
+              ? runResult.results.length 
+              : null
+          } : null
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        setCoachFeedback(data.feedback);
+      } else {
+        setIsQuotaExceeded(data.isQuotaExceeded || false);
+        throw new Error(data.error || 'Failed to fetch AI feedback');
+      }
+    } catch (error) {
+      console.error('AI Coach error:', error);
+      setCoachError(error instanceof Error ? error.message : 'An unexpected error occurred');
+    } finally {
+      setIsCoachLoading(false);
+    }
+  };
 
   // Keep local submissions in sync if userSubmissions changes (e.g. on problem change)
   useEffect(() => {
@@ -437,11 +515,14 @@ export function ProblemSolver({ problem, userSubmissions, user }: ProblemSolverP
     <div className="flex-1 overflow-hidden p-4">
       <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
         <ResizablePanel defaultSize={35} minSize={30}>
-          <div className="h-full flex flex-col bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
             <Tabs value={activeLeftTab} onValueChange={setActiveLeftTab} className="flex-1 flex flex-col min-h-0">
-              <TabsList className="grid w-full grid-cols-2 flex-shrink-0 rounded-none border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
-                <TabsTrigger value="description" className="rounded-none data-[state=active]:bg-gray-200 dark:data-[state=active]:bg-gray-700">Description</TabsTrigger>
-                <TabsTrigger value="submissions" className="rounded-none data-[state=active]:bg-gray-200 dark:data-[state=active]:bg-gray-700">Submissions</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 flex-shrink-0 rounded-none border-b border-gray-200 dark:border-gray-700 bg-gray-100 dark:bg-gray-800">
+                <TabsTrigger value="description" className="rounded-none data-[state=active]:bg-gray-200 dark:data-[state=active]:bg-gray-700 text-xs">Description</TabsTrigger>
+                <TabsTrigger value="submissions" className="rounded-none data-[state=active]:bg-gray-200 dark:data-[state=active]:bg-gray-700 text-xs">Submissions</TabsTrigger>
+                <TabsTrigger value="ai-coach" className="flex items-center gap-1 rounded-none data-[state=active]:bg-gray-200 dark:data-[state=active]:bg-gray-700 text-xs">
+                  <Sparkles className="h-3 w-3 text-purple-500 animate-pulse animate-duration-1000" />
+                  AI Coach
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="description" className="flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden">
@@ -455,8 +536,104 @@ export function ProblemSolver({ problem, userSubmissions, user }: ProblemSolverP
                   <SubmissionResults submissions={submissions} loading={loading} />
                 </div>
               </TabsContent>
+
+              <TabsContent value="ai-coach" className="flex-1 overflow-y-auto min-h-0 data-[state=inactive]:hidden p-6 bg-gray-50/30 dark:bg-gray-900/10">
+                <div className="h-full flex flex-col">
+                  {isCoachLoading ? (
+                    <div className="flex-1 flex flex-col items-center justify-center space-y-6 py-12">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
+                        <Brain className="h-16 w-16 text-purple-500 animate-bounce relative" />
+                      </div>
+                      <div className="text-center space-y-2">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-neutral-100">Coach is thinking...</h3>
+                        <p className="text-xs text-gray-500 dark:text-neutral-400 max-w-xs mx-auto animate-pulse">
+                          {loadingSteps[loadingStep]}
+                        </p>
+                      </div>
+                    </div>
+                  ) : coachFeedback ? (
+                    <div className="space-y-6">
+                      <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+                        <div className="flex items-center gap-2">
+                          <Brain className="h-5 w-5 text-purple-500" />
+                          <h3 className="text-sm font-bold text-gray-900 dark:text-neutral-100">Coach Feedback</h3>
+                        </div>
+                        <button
+                          onClick={handleAskCoach}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 text-purple-600 dark:text-purple-400 font-semibold rounded-lg text-xs transition-colors"
+                        >
+                          <Sparkles className="h-3 w-3" />
+                          Re-Analyze
+                        </button>
+                      </div>
+
+                      <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-neutral-300 leading-relaxed space-y-4">
+                        <ReactMarkdown
+                          components={{
+                            h3: ({ node, ...props }) => <h3 className="text-sm font-bold text-gray-950 dark:text-neutral-50 mt-5 mb-2 border-l-2 border-purple-500 pl-2" {...props} />,
+                            h4: ({ node, ...props }) => <h4 className="text-xs font-bold text-gray-900 dark:text-neutral-200 mt-4 mb-1" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="list-disc pl-5 space-y-2 mt-2" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="list-decimal pl-5 space-y-2 mt-2" {...props} />,
+                            li: ({ node, ...props }) => <li className="text-xs text-gray-700 dark:text-neutral-300" {...props} />,
+                            p: ({ node, ...props }) => <p className="text-xs text-gray-700 dark:text-neutral-300 mb-2 leading-relaxed" {...props} />,
+                            code: ({ node, className, children, ...props }) => (
+                              <code className="bg-gray-150 dark:bg-gray-800 px-1 py-0.5 rounded text-[11px] font-mono text-purple-600 dark:text-purple-400 break-all" {...props}>
+                                {children}
+                              </code>
+                            ),
+                            blockquote: ({ node, ...props }) => (
+                              <blockquote className="border-l-4 border-purple-500 bg-purple-50/50 dark:bg-purple-950/20 px-3 py-1.5 rounded-r-lg text-xs italic my-3" {...props} />
+                            )
+                          }}
+                        >
+                          {coachFeedback}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center space-y-5 py-12 text-center">
+                      <div className="h-14 w-14 bg-purple-50 dark:bg-purple-900/10 rounded-full flex items-center justify-center border border-purple-100 dark:border-purple-900/30">
+                        <Brain className="h-7 w-7 text-purple-500 animate-pulse" />
+                      </div>
+                      <div className="space-y-1.5">
+                        <h3 className="text-sm font-bold text-gray-900 dark:text-neutral-100">Consult your AI Coding Coach</h3>
+                        <p className="text-xs text-gray-500 dark:text-neutral-400 max-w-xs mx-auto">
+                          Get encouraging, guided tips and time/space complexity analysis of your solution without spoilers!
+                        </p>
+                      </div>
+
+                      {coachError && (
+                        <div className={`flex items-start gap-2.5 p-3.5 border rounded-xl max-w-sm text-left ${isQuotaExceeded 
+                          ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200/50 dark:border-orange-800/30' 
+                          : 'bg-red-50 dark:bg-red-950/20 border-red-200/50 dark:border-red-800/30'}`}>
+                          <AlertTriangle className={`h-4 w-4 mt-0.5 flex-shrink-0 ${isQuotaExceeded ? 'text-orange-600' : 'text-red-600'}`} />
+                          <div className="flex-1">
+                            <p className={`text-xs ${isQuotaExceeded ? 'text-orange-800 dark:text-orange-400' : 'text-red-800 dark:text-red-400'}`}>{coachError}</p>
+                            {isQuotaExceeded && (
+                              <p className="text-xs text-orange-700 dark:text-orange-500 mt-1.5">
+                                The free tier has a daily limit. Try again later or upgrade your plan at{' '}
+                                <a href="https://ai.google.dev/gemini-api/docs/rate-limits" target="_blank" rel="noopener noreferrer" className="underline hover:no-underline">
+                                  Google AI Studio
+                                </a>.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      <button
+                        onClick={handleAskCoach}
+                        className="flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:shadow-purple-500/10 transition-all text-xs"
+                      >
+                        <Sparkles className="h-4 w-4 animate-bounce" />
+                        Analyze My Code
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
             </Tabs>
-          </div>
         </ResizablePanel>
 
         <ResizableHandle />
@@ -554,14 +731,25 @@ export function ProblemSolver({ problem, userSubmissions, user }: ProblemSolverP
                           </div>
                         ) : runResult && Array.isArray(runResult?.results) ? (
                           <div>
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-medium">Test Case Results:</span>
-                              <span className={`px-2 py-1 rounded text-xs ${runResult.results.filter((r: any) => r.passed).length === runResult.results.length
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                }`}>
-                                {runResult.results.filter((r: any) => r.passed).length} / {runResult.results.length} passed
-                              </span>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Test Case Results:</span>
+                                <span className={`px-2 py-1 rounded text-xs ${runResult.results.filter((r: any) => r.passed).length === runResult.results.length
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  }`}>
+                                  {runResult.results.filter((r: any) => r.passed).length} / {runResult.results.length} passed
+                                </span>
+                              </div>
+                              {runResult.results.filter((r: any) => r.passed).length < runResult.results.length && (
+                                <button
+                                  onClick={handleAskCoach}
+                                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 font-semibold rounded border border-purple-200/50 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
+                                >
+                                  <Sparkles className="h-3 w-3 animate-pulse" />
+                                  Ask Coach
+                                </button>
+                              )}
                             </div>
                             <div className="space-y-2">
                               {runResult.results.map((res: any, idx: number) => (
@@ -590,14 +778,25 @@ export function ProblemSolver({ problem, userSubmissions, user }: ProblemSolverP
                           </div>
                         ) : runResult && !Array.isArray(runResult?.results) ? (
                           <div className="space-y-2">
-                            <div className="flex items-center gap-2 mb-2">
-                              <span className="text-sm font-medium">Execution Result:</span>
-                              <span className={`px-2 py-1 rounded text-xs ${runResult.status === 'Accepted'
-                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                                }`}>
-                                {runResult.status}
-                              </span>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Execution Result:</span>
+                                <span className={`px-2 py-1 rounded text-xs ${runResult.status === 'Accepted'
+                                  ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                  : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                                  }`}>
+                                  {runResult.status}
+                                </span>
+                              </div>
+                              {runResult.status !== 'Accepted' && (
+                                <button
+                                  onClick={handleAskCoach}
+                                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400 font-semibold rounded border border-purple-200/50 hover:bg-purple-100 dark:hover:bg-purple-950/50 transition-colors"
+                                >
+                                  <Sparkles className="h-3 w-3 animate-pulse" />
+                                  Ask Coach
+                                </button>
+                              )}
                             </div>
                             <div className="p-3 rounded-lg text-xs border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 shadow-sm">
                               <div className="grid grid-cols-2 gap-2 text-xs">
