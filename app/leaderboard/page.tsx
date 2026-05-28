@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { LeaderboardEntry } from '@/types';
-import { Trophy, Medal, Award, TrendingUp, Target, CheckCircle2, Clock, Calendar } from 'lucide-react';
+import { Trophy, Medal, Award, TrendingUp, Target, CheckCircle2, Clock, Calendar, Download } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 
 export default function LeaderboardPage() {
@@ -75,6 +75,68 @@ export default function LeaderboardPage() {
             default:
                 return 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-neutral-300';
         }
+    };
+
+    const handleExportCSV = () => {
+        if (leaderboard.length === 0) return;
+
+        const headers = [
+            'Rank',
+            'Username',
+            'Full Name',
+            'Email',
+            'Total Score',
+            'Problems Solved',
+            'Problems Attempted',
+            'Easy Solved',
+            'Medium Solved',
+            'Hard Solved',
+            'Total Submissions',
+            'Accepted Submissions',
+            'Acceptance Rate (%)',
+            'Last Active'
+        ];
+
+        const rows = leaderboard.map(entry => [
+            entry.rank,
+            entry.username || 'Anonymous',
+            entry.full_name || 'Anonymous',
+            entry.email || 'N/A',
+            entry.total_score,
+            entry.problems_solved,
+            entry.problems_attempted,
+            entry.easy_solved,
+            entry.medium_solved,
+            entry.hard_solved,
+            entry.total_submissions,
+            entry.accepted_submissions,
+            entry.acceptance_rate.toFixed(2),
+            entry.last_submission_at ? new Date(entry.last_submission_at).toISOString().split('T')[0] : 'N/A'
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => 
+                row.map(value => {
+                    const stringValue = typeof value === 'string' ? value : String(value);
+                    if (stringValue.includes(',') || stringValue.includes('"') || stringValue.includes('\n')) {
+                        return `"${stringValue.replace(/"/g, '""')}"`;
+                    }
+                    return stringValue;
+                }).join(',')
+            )
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const today = new Date().toISOString().split('T')[0];
+        link.setAttribute('href', url);
+        link.setAttribute('download', `codesprint_leaderboard_${today}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     if (loading) {
@@ -180,6 +242,21 @@ export default function LeaderboardPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Actions & Title */}
+                <div className="max-w-7xl mx-auto mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 px-4 sm:px-0">
+                    <h2 className="text-2xl font-bold text-gray-900 dark:text-neutral-100">
+                        Standings
+                    </h2>
+                    <button
+                        onClick={handleExportCSV}
+                        disabled={leaderboard.length === 0}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white rounded-xl shadow-md hover:shadow-lg transition duration-200 text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    >
+                        <Download className="w-4.5 h-4.5" />
+                        Export to CSV
+                    </button>
                 </div>
 
                 {/* Leaderboard Table */}

@@ -4,8 +4,10 @@ import { supabaseServer } from '@/lib/supabase/server';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Trophy, Target, Clock, Calendar, User, Mail, CalendarDays } from 'lucide-react';
+import { Trophy, Target, Clock, Calendar, User, Mail, CalendarDays, Lock, Medal } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { BADGE_DEFINITIONS, UserStats } from '@/app/api/achievements/route';
 
 export default async function ProfilePage() {
   const { userId } = await auth();
@@ -19,6 +21,8 @@ export default async function ProfilePage() {
     successRate: 0,
     joinDate: new Date().toLocaleDateString()
   };
+
+  let earnedBadges: Array<{ id: string; name: string; emoji: string; color: string; description: string }> = [];
 
   try {
     if (userId) {
@@ -47,6 +51,32 @@ export default async function ProfilePage() {
           joinDate: user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : new Date().toLocaleDateString()
         };
       }
+
+      // Compute earned badges server-side
+      const { data: submissions } = await supabaseServer
+        .from('submissions')
+        .select('status, runtime')
+        .eq('user_id', userId);
+
+      const { data: progressWithDiff } = await supabaseServer
+        .from('user_progress')
+        .select('status, problems(difficulty)')
+        .eq('user_id', userId);
+
+      const totalSolved = progressWithDiff?.filter(p => p.status === 'Solved').length ?? 0;
+      const easySolved = progressWithDiff?.filter((p: any) => p.status === 'Solved' && p.problems?.difficulty === 'Easy').length ?? 0;
+      const mediumSolved = progressWithDiff?.filter((p: any) => p.status === 'Solved' && p.problems?.difficulty === 'Medium').length ?? 0;
+      const hardSolved = progressWithDiff?.filter((p: any) => p.status === 'Solved' && p.problems?.difficulty === 'Hard').length ?? 0;
+      const totalSubs = submissions?.length ?? 0;
+      const acceptedSubs = submissions?.filter(s => s.status === 'Accepted').length ?? 0;
+      const acceptanceRate = totalSubs > 0 ? Math.round((acceptedSubs / totalSubs) * 100) : 0;
+      const runtimes = submissions?.filter(s => s.runtime !== null).map(s => s.runtime as number) ?? [];
+      const minRuntime = runtimes.length > 0 ? Math.min(...runtimes) : null;
+
+      const badgeStats: UserStats = { totalSolved, easySolved, mediumSolved, hardSolved, totalSubmissions: totalSubs, acceptedSubmissions: acceptedSubs, acceptanceRate, minRuntime };
+      earnedBadges = BADGE_DEFINITIONS
+        .filter(b => b.check(badgeStats))
+        .map(b => ({ id: b.id, name: b.name, emoji: b.emoji, color: b.color, description: b.description }));
     }
   } catch (error) {
     console.error('Error fetching user data:', error);
@@ -181,6 +211,40 @@ export default async function ProfilePage() {
                   className="h-2 bg-gray-200 dark:bg-gray-700"
                 />
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Earned Badges */}
+          <Card className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 shadow-sm">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-gray-900 dark:text-white flex items-center gap-2">
+                <Medal className="h-5 w-5 text-yellow-500" />
+                Earned Badges
+              </CardTitle>
+              <Link href="/achievements" className="text-sm text-blue-600 dark:text-blue-400 hover:underline font-medium">
+                View All →
+              </Link>
+            </CardHeader>
+            <CardContent>
+              {earnedBadges.length === 0 ? (
+                <div className="text-center py-6">
+                  <Lock className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                  <p className="text-gray-500 dark:text-gray-400">No badges unlocked yet. Start solving problems!</p>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-3">
+                  {earnedBadges.map(badge => (
+                    <div
+                      key={badge.id}
+                      title={badge.description}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r ${badge.color} text-white text-sm font-semibold shadow-md hover:scale-105 transition-transform cursor-default`}
+                    >
+                      <span className="text-lg">{badge.emoji}</span>
+                      {badge.name}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
 
