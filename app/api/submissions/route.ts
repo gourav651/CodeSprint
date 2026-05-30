@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
 import { executeCode } from '@/lib/piston/client';
 import { auth } from '@clerk/nextjs/server';
+import { checkAndPersistBadges } from '@/lib/badges/checkAndPersistBadges';
 
 export async function POST(request: NextRequest) {
   try {
@@ -141,12 +142,16 @@ export async function POST(request: NextRequest) {
       // Continue execution even if progress update fails, but log the error
     }
 
+    // Check and persist any newly unlocked badges (non-blocking — never fails the submission)
+    const newBadges = allPassed ? await checkAndPersistBadges(userId) : [];
+
     return NextResponse.json({
       submissionId: submission.id,
       status,
       runtime: Math.round(totalTime * 1000),
       memory: maxMemory,
-      error: errorMessage || null
+      error: errorMessage || null,
+      newBadges,
     });
 
   } catch (error) {

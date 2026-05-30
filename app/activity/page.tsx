@@ -12,7 +12,9 @@ import {
   ShieldAlert, 
   ExternalLink, 
   Calendar,
-  Code
+  Code,
+  LogIn,
+  Users
 } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 
@@ -41,7 +43,7 @@ export default function ActivityPage() {
   const [submissions, setSubmissions] = useState<LiveSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { userId } = useAuth();
+  const { userId, isLoaded } = useAuth();
 
   const fetchLiveSubmissions = async () => {
     try {
@@ -136,7 +138,7 @@ export default function ActivityPage() {
     <div className="min-h-screen bg-gray-100 dark:bg-gradient-to-br dark:from-gray-900 dark:via-black dark:to-gray-800">
       <div className="max-w-5xl mx-auto px-6 py-12">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-10">
           <div className="flex items-center justify-center gap-3 mb-4">
             <Activity className="w-12 h-12 text-blue-500 animate-pulse" />
             <h1 className="text-5xl font-bold text-gray-900 dark:text-neutral-100">
@@ -148,6 +150,25 @@ export default function ActivityPage() {
           </p>
         </div>
 
+        {/* Guest sign-in nudge banner (shown only when not logged in) */}
+        {isLoaded && !userId && (
+          <div className="mb-10 flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 rounded-2xl border border-blue-400/30 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-950/20 shadow-sm">
+            <div className="flex items-center gap-3">
+              <Users className="w-6 h-6 text-blue-500 shrink-0" />
+              <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
+                Sign in to highlight your own submissions in the feed and track your progress.
+              </p>
+            </div>
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl shadow transition-all duration-200 hover:scale-105 shrink-0"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </Link>
+          </div>
+        )}
+
         {/* Live List */}
         <div className="space-y-4">
           {submissions.length === 0 ? (
@@ -157,7 +178,8 @@ export default function ActivityPage() {
           ) : (
             submissions.map((sub) => {
               const statusStyle = getStatusStyle(sub.status);
-              const isCurrentUser = sub.user_id === userId;
+              // Only highlight "You" if the user is actually signed in
+              const isCurrentUser = isLoaded && !!userId && sub.user_id === userId;
 
               return (
                 <div
@@ -218,13 +240,13 @@ export default function ActivityPage() {
                         </div>
                       )}
 
-                      {/* Code Info */}
+                      {/* Language */}
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-neutral-300 rounded-xl text-xs font-semibold">
                         <Code className="w-3.5 h-3.5" />
                         {sub.language}
                       </div>
 
-                      {/* Runtime Info */}
+                      {/* Runtime */}
                       {sub.status === 'Accepted' && sub.runtime !== undefined && (
                         <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-neutral-300 rounded-xl text-xs font-semibold">
                           <Clock className="w-3.5 h-3.5 text-blue-500" />
@@ -232,7 +254,7 @@ export default function ActivityPage() {
                         </div>
                       )}
 
-                      {/* Memory Info */}
+                      {/* Memory */}
                       {sub.status === 'Accepted' && sub.memory_usage !== undefined && (
                         <div className="flex items-center gap-1.5 px-3 py-1 bg-gray-100 dark:bg-gray-900/50 text-gray-600 dark:text-neutral-300 rounded-xl text-xs font-semibold">
                           <Cpu className="w-3.5 h-3.5 text-purple-500" />
@@ -248,7 +270,7 @@ export default function ActivityPage() {
                     </div>
                   </div>
 
-                  {/* Absolute Time */}
+                  {/* Timestamp */}
                   <div className="absolute top-2 right-4 text-[10px] text-gray-400 dark:text-neutral-500 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {new Date(sub.submitted_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}

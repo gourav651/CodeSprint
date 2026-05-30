@@ -580,6 +580,19 @@ export function ProblemSolver({
           variant: result.status === "Accepted" ? "default" : "destructive",
         });
 
+        // 🏆 Badge unlock toasts — fire one per newly earned badge
+        if (Array.isArray(result.newBadges) && result.newBadges.length > 0) {
+          result.newBadges.forEach((badge: { id: string; name: string; emoji: string }) => {
+            setTimeout(() => {
+              toast({
+                title: `${badge.emoji} Badge Unlocked!`,
+                description: `You earned the "${badge.name}" badge. Check your Achievements page!`,
+                variant: "default",
+              });
+            }, 800); // slight delay so it appears after the submission toast
+          });
+        }
+
         // Update the result to show submission details
         setRunResult({
           status: result.status,
