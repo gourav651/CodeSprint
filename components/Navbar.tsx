@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, User, Code, Moon, Sun, Trophy, Activity, Medal } from 'lucide-react';
+import { Home, User, Code, Moon, Sun, Trophy, Activity, Medal, Flame, Swords } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
@@ -58,6 +58,26 @@ export function Navbar() {
               >
                 <Code className="h-4 w-4 mr-2" />
                 Problems
+              </Link>
+              <Link
+                href="/daily"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/daily'
+                  ? 'bg-orange-100 text-orange-700 dark:bg-gray-800 dark:text-white'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                  }`}
+              >
+                <Flame className="h-4 w-4 mr-2 text-orange-500" />
+                Daily
+              </Link>
+              <Link
+                href="/contests"
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/contests')
+                  ? 'bg-purple-100 text-purple-700 dark:bg-gray-800 dark:text-white'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                  }`}
+              >
+                <Swords className="h-4 w-4 mr-2" />
+                Contests
               </Link>
               <Link
                 href="/leaderboard"
@@ -140,6 +160,26 @@ export function Navbar() {
             >
               <Code className="h-4 w-4 mr-2" />
               Problems
+            </Link>
+            <Link
+              href="/daily"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/daily'
+                ? 'bg-orange-100 text-orange-700 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                }`}
+            >
+              <Flame className="h-4 w-4 mr-2 text-orange-500" />
+              Daily
+            </Link>
+            <Link
+              href="/contests"
+              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/contests')
+                ? 'bg-purple-100 text-purple-700 dark:bg-gray-800 dark:text-white'
+                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
+                }`}
+            >
+              <Swords className="h-4 w-4 mr-2" />
+              Contests
             </Link>
             <Link
               href="/leaderboard"
