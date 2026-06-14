@@ -7,7 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { Trophy, Target, Clock, Calendar, User, Mail, CalendarDays, Lock, Medal } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { BADGE_DEFINITIONS, UserStats } from '@/app/api/achievements/route';
+import { BADGE_DEFINITIONS, UserStats } from '@/lib/badges/definitions';
 
 export default async function ProfilePage() {
   const { userId } = await auth();

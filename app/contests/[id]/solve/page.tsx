@@ -93,7 +93,30 @@ export default function ContestSolvePage() {
             // Create PC if it doesn't exist
             if (!pc && (type === 'offer' || type === 'join')) {
               pc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+                iceServers: [
+                  { urls: "stun:stun.relay.metered.ca:80" },
+                  { urls: 'stun:stun.l.google.com:19302' },
+                  {
+                    urls: "turn:global.relay.metered.ca:80",
+                    username: "007698b76a95a55d77a12575",
+                    credential: "cW393KVrjuYmicPq",
+                  },
+                  {
+                    urls: "turn:global.relay.metered.ca:80?transport=tcp",
+                    username: "007698b76a95a55d77a12575",
+                    credential: "cW393KVrjuYmicPq",
+                  },
+                  {
+                    urls: "turn:global.relay.metered.ca:443",
+                    username: "007698b76a95a55d77a12575",
+                    credential: "cW393KVrjuYmicPq",
+                  },
+                  {
+                    urls: "turns:global.relay.metered.ca:443?transport=tcp",
+                    username: "007698b76a95a55d77a12575",
+                    credential: "cW393KVrjuYmicPq",
+                  },
+                ],
               });
               peerConnections.current[from] = pc;
 
@@ -255,7 +278,7 @@ export default function ContestSolvePage() {
                   key={problems[activeTab].id} 
                   problem={problems[activeTab]}
                   userSubmissions={EMPTY_SUBMISSIONS}
-                  user={{ id: userId }}
+                  user={{ id: userId ?? null }}
                 />
               </div>
             )}

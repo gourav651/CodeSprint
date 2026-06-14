@@ -4,10 +4,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Home, User, Code, Moon, Sun, Trophy, Activity, Medal, Flame, Swords } from 'lucide-react';
+import { User, Code, Moon, Sun, Trophy, Activity, Medal, Flame, Swords, Menu } from 'lucide-react';
 import { useUser, UserButton } from '@clerk/nextjs';
 import { useState, useEffect } from 'react';
 import { useTheme } from '@/components/ThemeProvider';
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetClose } from '@/components/ui/sheet';
 
 export function Navbar() {
   const pathname = usePathname();
@@ -20,226 +21,199 @@ export function Navbar() {
     setMounted(true);
   }, []);
 
-  if (!mounted) {
+  const navLinks = [
+    { href: '/problems', label: 'Problems', icon: Code, match: '/problems' },
+    { href: '/daily', label: 'Daily', icon: Flame, match: '/daily', iconClass: 'text-orange-500 dark:text-orange-400' },
+    { href: '/contests', label: 'Contests', icon: Swords, match: '/contests' },
+    { href: '/leaderboard', label: 'Leaderboard', icon: Trophy, match: '/leaderboard' },
+  ];
 
-    return (
-      <nav className="border-b border-neutral-300/50 dark:border-neutral-200/20 bg-gradient-to-r from-white via-blue-50 to-white dark:from-gray-900 dark:via-black dark:to-gray-800 backdrop-blur supports-[backdrop-filter]:bg-white/95 dark:supports-[backdrop-filter]:bg-gray-900/95">
-        <div className="w-full px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Link href="/" className="flex items-center space-x-2">
-              <Image
-                src="/logo.png"
-                alt="CodeSprint Logo"
-                width={32}
-                height={32}
-                className="h-8 w-8"
-              />
-              <span className="font-bold text-xl text-gray-900 dark:text-white">CodeSprint</span>
-            </Link>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="hidden md:flex items-center space-x-4">
-              <Link
-                href="/"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Home
-              </Link>
-              <Link
-                href="/problems"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/problems')
-                  ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Code className="h-4 w-4 mr-2" />
-                Problems
-              </Link>
-              <Link
-                href="/daily"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/daily'
-                  ? 'bg-orange-100 text-orange-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Flame className="h-4 w-4 mr-2 text-orange-500" />
-                Daily
-              </Link>
-              <Link
-                href="/contests"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/contests')
-                  ? 'bg-purple-100 text-purple-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Swords className="h-4 w-4 mr-2" />
-                Contests
-              </Link>
-              <Link
-                href="/leaderboard"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/leaderboard'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Trophy className="h-4 w-4 mr-2" />
-                Leaderboard
-              </Link>
-              <Link
-                href="/activity"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/activity'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Activity className="h-4 w-4 mr-2" />
-                Activity
-              </Link>
-              <Link
-                href="/achievements"
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/achievements'
-                  ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                  }`}
-              >
-                <Medal className="h-4 w-4 mr-2" />
-                Achievements
-              </Link>
-            </div>
-          </div>
-        </div>
-      </nav>
-    );
-  }
+  const userLinks = [
+    { href: '/activity', label: 'Activity', icon: Activity, match: '/activity' },
+    { href: '/achievements', label: 'Achievements', icon: Medal, match: '/achievements' },
+  ];
 
-  return (
-    <nav className="border-b border-neutral-300/50 dark:border-neutral-200/20 bg-gradient-to-r from-white via-blue-50 to-white dark:from-gray-900 dark:via-black dark:to-gray-800 backdrop-blur supports-[backdrop-filter]:bg-white/95 dark:supports-[backdrop-filter]:bg-gray-900/95">
-      <div className="w-full px-6 h-16 flex items-center justify-between">
+  const renderNavLinks = (links: any[]) => (
+    links.map((link) => {
+      const isActive = (pathname.startsWith(link.match) && link.match !== '/') || pathname === link.href;
+      return (
+        <Link
+          key={link.href}
+          href={link.href}
+          className={`px-3 py-2 rounded-full text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
+            isActive
+              ? 'bg-blue-100/50 text-blue-700 dark:bg-white/10 dark:text-white shadow-sm'
+              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5'
+          }`}
+        >
+          <link.icon className={`h-4 w-4 ${link.iconClass || ''} ${isActive && !link.iconClass ? 'text-blue-600 dark:text-white' : ''}`} />
+          <span className="hidden xl:inline">{link.label}</span>
+        </Link>
+      );
+    })
+  );
+
+  const renderMobileLinks = (links: any[]) => (
+    links.map((link) => {
+      const isActive = (pathname.startsWith(link.match) && link.match !== '/') || pathname === link.href;
+      return (
+        <SheetClose asChild key={link.href}>
+          <Link
+            href={link.href}
+            className={`px-4 py-3 rounded-xl text-base font-semibold transition-all duration-300 flex items-center gap-3 ${
+              isActive
+                ? 'bg-blue-100/50 text-blue-700 dark:bg-white/10 dark:text-white shadow-sm'
+                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5'
+            }`}
+          >
+            <link.icon className={`h-5 w-5 ${link.iconClass || ''} ${isActive && !link.iconClass ? 'text-blue-600 dark:text-white' : ''}`} />
+            {link.label}
+          </Link>
+        </SheetClose>
+      );
+    })
+  );
+
+  const skeletonNav = (
+    <nav className="sticky top-0 z-50 border-b border-neutral-300/50 dark:border-neutral-200/10 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-[#0A0A0A]/60">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-2">
-          <Link href="/" className="flex items-center space-x-2">
-            <Image
-              src="/logo.png"
-              alt="CodeSprint Logo"
-              width={32}
-              height={32}
-              className="h-8 w-8"
-            />
-            <span className="font-bold text-xl text-gray-900 dark:text-white">CodeSprint</span>
+          <Link href="/" className="flex items-center space-x-2 shrink-0 group">
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+              <Image src="/logo.png" alt="CodeSprint Logo" fill className="object-cover" />
+            </div>
+            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+              CodeSprint
+            </span>
           </Link>
         </div>
+      </div>
+    </nav>
+  );
 
-        <div className="flex items-center space-x-4">
-          <button
-            aria-label="Toggle theme"
-            onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors border border-gray-300 dark:border-gray-600"
-          >
-            {theme === 'dark' ? <Sun className="h-5 w-5 text-yellow-400" /> : <Moon className="h-5 w-5 text-blue-600" />}
-          </button>
-          <div className="hidden md:flex items-center space-x-4">
-            <Link
-              href="/"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/'
-                ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Home className="h-4 w-4 mr-2" />
-              Home
-            </Link>
-            <Link
-              href="/problems"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/problems')
-                ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Code className="h-4 w-4 mr-2" />
-              Problems
-            </Link>
-            <Link
-              href="/daily"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/daily'
-                ? 'bg-orange-100 text-orange-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Flame className="h-4 w-4 mr-2 text-orange-500" />
-              Daily
-            </Link>
-            <Link
-              href="/contests"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname.startsWith('/contests')
-                ? 'bg-purple-100 text-purple-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Swords className="h-4 w-4 mr-2" />
-              Contests
-            </Link>
-            <Link
-              href="/leaderboard"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/leaderboard'
-                ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Trophy className="h-4 w-4 mr-2" />
-              Leaderboard
-            </Link>
-            <Link
-              href="/activity"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/activity'
-                ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Activity className="h-4 w-4 mr-2" />
-              Activity
-            </Link>
-            <Link
-              href="/achievements"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center ${pathname === '/achievements'
-                ? 'bg-blue-100 text-blue-700 dark:bg-gray-800 dark:text-white'
-                : 'text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Medal className="h-4 w-4 mr-2" />
-              Achievements
-            </Link>
+  if (!mounted) return skeletonNav;
+
+  return (
+    <nav className="sticky top-0 z-50 border-b border-neutral-300/50 dark:border-neutral-200/10 bg-white/80 dark:bg-[#0A0A0A]/80 backdrop-blur-md supports-[backdrop-filter]:bg-white/60 dark:supports-[backdrop-filter]:bg-[#0A0A0A]/60">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        
+        {/* Left: Logo & Primary Nav */}
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center space-x-2 shrink-0 group">
+            <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+              <Image src="/logo.png" alt="CodeSprint Logo" fill className="object-cover group-hover:scale-110 transition-transform duration-300" />
+            </div>
+            <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+              CodeSprint
+            </span>
+          </Link>
+
+          <div className="hidden lg:flex items-center gap-1.5">
+            {renderNavLinks(navLinks)}
+          </div>
+        </div>
+
+        {/* Right: Secondary Nav & Actions */}
+        <div className="flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-1.5 border-r border-gray-200 dark:border-gray-800 pr-3">
+            {renderNavLinks(userLinks)}
           </div>
 
+          {/* <button
+            aria-label="Toggle theme"
+            onClick={toggleTheme}
+            className="p-2 flex-shrink-0 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors text-gray-600 dark:text-gray-300"
+          >
+            {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button> */}
+
           {isSignedIn ? (
-            <div className="flex items-center space-x-4">
+            <div className="hidden lg:flex items-center gap-3 pl-1">
               <Link href="/profile">
-                <Button variant="ghost" className="text-gray-700 hover:text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:text-gray-200 dark:hover:bg-white/10">
+                <Button variant="ghost" size="sm" className="rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 font-semibold">
                   <User className="h-4 w-4 mr-2" />
                   Profile
                 </Button>
               </Link>
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "h-8 w-8"
-                  }
-                }}
-              />
+              <UserButton appearance={{ elements: { avatarBox: "h-8 w-8 ring-2 ring-white dark:ring-gray-900 rounded-full" } }} />
             </div>
           ) : (
-            <div className="flex items-center space-x-4">
+            <div className="hidden lg:flex items-center">
               <Link href="/sign-in">
-                <Button className="bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-black dark:hover:bg-gray-200">
+                <Button size="sm" className="rounded-full bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-black dark:hover:bg-gray-200 shadow-sm font-semibold px-5">
                   Sign In
                 </Button>
               </Link>
             </div>
           )}
+
+          {/* User profile on smaller screens without text */}
+          {isSignedIn && (
+            <div className="lg:hidden flex items-center">
+              <UserButton appearance={{ elements: { avatarBox: "h-8 w-8 ring-2 ring-white dark:ring-gray-900 rounded-full" } }} />
+            </div>
+          )}
+
+          {/* Mobile Hamburger Menu */}
+          <div className="lg:hidden flex items-center">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[350px] bg-white dark:bg-[#0A0A0A] border-gray-200 dark:border-gray-800 flex flex-col p-0">
+                <SheetHeader className="p-6 border-b border-gray-100 dark:border-gray-800 text-left shrink-0">
+                  <SheetTitle className="flex items-center gap-2">
+                    <div className="relative h-6 w-6 overflow-hidden rounded-md">
+                      <Image src="/logo.png" alt="Logo" fill className="object-cover" />
+                    </div>
+                    <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+                      CodeSprint
+                    </span>
+                  </SheetTitle>
+                </SheetHeader>
+                <div className="flex-1 overflow-y-auto py-6 px-4 flex flex-col gap-6">
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-4">Menu</p>
+                    {renderMobileLinks(navLinks)}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2 px-4">Your Activity</p>
+                    {renderMobileLinks(userLinks)}
+                    {isSignedIn && (
+                      <SheetClose asChild>
+                        <Link
+                          href="/profile"
+                          className={`px-4 py-3 rounded-xl text-base font-semibold transition-all duration-300 flex items-center gap-3 ${
+                            pathname === '/profile'
+                              ? 'bg-blue-100/50 text-blue-700 dark:bg-white/10 dark:text-white shadow-sm'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-white dark:hover:bg-white/5'
+                          }`}
+                        >
+                          <User className="h-5 w-5" />
+                          Profile
+                        </Link>
+                      </SheetClose>
+                    )}
+                  </div>
+                  {!isSignedIn && (
+                    <div className="pt-4 border-t border-gray-100 dark:border-gray-800 mt-auto">
+                      <SheetClose asChild>
+                        <Link href="/sign-in" className="block">
+                          <Button className="w-full rounded-xl bg-blue-600 text-white hover:bg-blue-700 dark:bg-white dark:text-black dark:hover:bg-gray-200 py-6 text-base font-semibold shadow-sm">
+                            Sign In
+                          </Button>
+                        </Link>
+                      </SheetClose>
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </nav>
   );
-} 
+}

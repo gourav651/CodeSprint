@@ -61,12 +61,17 @@ export default function ActivityPage() {
   };
 
   useEffect(() => {
-    fetchLiveSubmissions();
-
-    // Poll every 10 seconds for new submissions
-    const interval = setInterval(fetchLiveSubmissions, 10000);
-    return () => clearInterval(interval);
-  }, []);
+    if (!isLoaded) return;
+    
+    // Only fetch submissions if the user is logged in
+    if (userId) {
+      fetchLiveSubmissions();
+      const interval = setInterval(fetchLiveSubmissions, 10000);
+      return () => clearInterval(interval);
+    } else {
+      setLoading(false);
+    }
+  }, [isLoaded, userId]);
 
   const getStatusStyle = (status: string) => {
     switch (status) {
@@ -150,32 +155,30 @@ export default function ActivityPage() {
           </p>
         </div>
 
-        {/* Guest sign-in nudge banner (shown only when not logged in) */}
-        {isLoaded && !userId && (
-          <div className="mb-10 flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-4 rounded-2xl border border-blue-400/30 dark:border-blue-500/20 bg-blue-50 dark:bg-blue-950/20 shadow-sm">
-            <div className="flex items-center gap-3">
-              <Users className="w-6 h-6 text-blue-500 shrink-0" />
-              <p className="text-sm text-blue-800 dark:text-blue-300 font-medium">
-                Sign in to highlight your own submissions in the feed and track your progress.
-              </p>
+        {isLoaded && !userId ? (
+          <div className="mt-8 bg-white/80 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-16 text-center shadow-lg">
+            <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Users className="w-10 h-10 text-blue-600 dark:text-blue-400" />
             </div>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Discover What Others Are Building</h2>
+            <p className="text-lg text-gray-600 dark:text-gray-400 mb-8 max-w-xl mx-auto">
+              Join CodeSprint to unlock the live developer feed. Track solutions in real-time, see how peers approach difficult problems, and showcase your own skills on the global stage.
+            </p>
             <Link
               href="/sign-in"
-              className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl shadow transition-all duration-200 hover:scale-105 shrink-0"
+              className="inline-flex items-center gap-2 px-8 py-3 bg-blue-600 hover:bg-blue-700 text-white text-lg font-bold rounded-xl shadow-md transition-all duration-300 hover:scale-105 hover:shadow-lg"
             >
-              <LogIn className="w-4 h-4" />
-              Sign In
+              <LogIn className="w-5 h-5" />
+              Sign In to Unlock
             </Link>
           </div>
-        )}
-
-        {/* Live List */}
-        <div className="space-y-4">
-          {submissions.length === 0 ? (
-            <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center text-gray-500 dark:text-neutral-400">
-              No submissions tracked yet. Be the first to run code!
-            </div>
-          ) : (
+        ) : (
+          <div className="space-y-4">
+            {submissions.length === 0 ? (
+              <div className="bg-white/80 dark:bg-gray-800/50 backdrop-blur-md border border-gray-200 dark:border-gray-700 rounded-2xl p-12 text-center text-gray-500 dark:text-neutral-400">
+                No submissions tracked yet. Be the first to run code!
+              </div>
+            ) : (
             submissions.map((sub) => {
               const statusStyle = getStatusStyle(sub.status);
               // Only highlight "You" if the user is actually signed in
@@ -280,6 +283,7 @@ export default function ActivityPage() {
             })
           )}
         </div>
+        )}
 
         {/* Refresh Note */}
         <div className="mt-8 text-center text-sm text-neutral-400 flex items-center justify-center gap-2">

@@ -3,14 +3,22 @@
 import React, { useState } from 'react';
 import { SignIn, SignUp } from '@clerk/nextjs';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, X } from 'lucide-react';
 
 const AuthPage: React.FC = () => {
   const [isSignIn, setIsSignIn] = useState(true);
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-8">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md relative">
+        {/* Top Right Close Button */}
+        <Link 
+          href="/" 
+          className="absolute -top-4 -right-4 p-2 text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors bg-white dark:bg-gray-800 rounded-full shadow-sm border border-gray-200 dark:border-gray-700"
+        >
+          <X className="h-5 w-5" />
+        </Link>
+        
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-3">
             {isSignIn ? 'Welcome Back' : 'Join CodeSprint'}
