@@ -644,7 +644,7 @@ export function ProblemSolver({
   };
 
   return (
-    <div className="flex-1 overflow-hidden p-4">
+    <div className="flex-1 h-full flex flex-col min-h-0 overflow-hidden p-4">
       <ResizablePanelGroup direction="horizontal" className="h-full gap-4">
         <ResizablePanel
           defaultSize={35}
@@ -731,7 +731,7 @@ export function ProblemSolver({
                                 message.role === "assistant"
                                   ? "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
                                   : "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800"
-                              } shadow-sm`}
+                              } shadow-sm min-w-0 overflow-x-auto`}
                             >
                               <div className="flex items-center gap-2 mb-2">
                                 <span
@@ -794,11 +794,17 @@ export function ProblemSolver({
                                     ...props
                                   }) => (
                                     <code
-                                      className="bg-gray-150 dark:bg-gray-800 px-1 py-0.5 rounded text-[11px] font-mono text-purple-600 dark:text-purple-400 break-all"
+                                      className="bg-gray-150 dark:bg-gray-800 px-1 py-0.5 rounded text-[11px] font-mono text-purple-600 dark:text-purple-400 break-all whitespace-pre-wrap"
                                       {...props}
                                     >
                                       {children}
                                     </code>
+                                  ),
+                                  pre: ({ node, ...props }) => (
+                                    <pre
+                                      className="overflow-x-auto max-w-full bg-slate-900 text-slate-100 p-3 rounded-xl my-3 text-[11px] font-mono"
+                                      {...props}
+                                    />
                                   ),
                                   blockquote: ({ node, ...props }) => (
                                     <blockquote
@@ -830,7 +836,7 @@ export function ProblemSolver({
                               </button>
                             </div>
 
-                            <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-neutral-300 leading-relaxed space-y-4">
+                            <div className="prose prose-sm dark:prose-invert max-w-none text-gray-800 dark:text-neutral-300 leading-relaxed space-y-4 min-w-0 overflow-x-auto">
                               <ReactMarkdown>{coachFeedback}</ReactMarkdown>
                             </div>
                           </div>
