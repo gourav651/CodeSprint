@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { executeCode } from '@/lib/piston/client';
+import { executeCode } from '@/lib/judge0/client';
 import { auth } from '@clerk/nextjs/server';
 import { checkAndPersistBadges } from '@/lib/badges/checkAndPersistBadges';
 

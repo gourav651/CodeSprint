@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeCode } from '@/lib/piston/client';
+import { executeCode } from '@/lib/judge0/client';
 import { supabaseServer } from '@/lib/supabase/server';
 
 // Note: We no longer wrap user code with hardcoded test cases.
