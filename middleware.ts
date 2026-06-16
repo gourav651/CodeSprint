@@ -19,7 +19,7 @@ const isProtectedRoute = createRouteMatcher([
   '/api/execute(.*)',
   '/api/users(.*)',
   '/leaderboard(.*)',
-  '/problems/.+',        // Individual problem pages require login
+  '/problems/(.+)',      // Individual problem pages require login
 ]);
 
 export default clerkMiddleware((auth, req) => {
