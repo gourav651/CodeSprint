@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Search, BookmarkCheck, Clock } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 
 interface ProblemListProps {
   problems: Problem[];
@@ -19,6 +21,16 @@ export function ProblemList({ problems, userProgress = {}, bookmarks = [] }: Pro
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const { isSignedIn } = useAuth();
+  const router = useRouter();
+
+  // Handle problem card click - redirect to login if not authenticated
+  const handleProblemClick = (e: React.MouseEvent, problemId: string) => {
+    if (!isSignedIn) {
+      e.preventDefault();
+      router.push('/sign-in');
+    }
+  };
 
   const filteredProblems = problems.filter(problem => {
     const matchesSearch = problem.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,18 +104,19 @@ export function ProblemList({ problems, userProgress = {}, bookmarks = [] }: Pro
       {/* Three-Column Problem Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProblems.map((problem) => (
-          <Card key={problem.id} className="group relative overflow-hidden bg-white/80 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 hover:border-blue-500/30 dark:hover:border-blue-500/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 dark:hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-1">
+          <Link
+            key={problem.id}
+            href={`/problems/${problem.id}`}
+            onClick={(e) => handleProblemClick(e, problem.id)}
+            className="block"
+          >
+          <Card className="group relative overflow-hidden bg-white/80 dark:bg-gradient-to-br dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 backdrop-blur-sm border border-gray-200/60 dark:border-gray-700/60 hover:border-blue-500/30 dark:hover:border-blue-500/50 shadow-sm hover:shadow-xl hover:shadow-blue-500/5 dark:hover:shadow-blue-500/10 transition-all duration-300 transform hover:-translate-y-1 cursor-pointer">
             <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-transparent to-purple-50/50 dark:from-blue-500/5 dark:via-transparent dark:to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             
             <CardHeader className="relative pb-3">
               <div className="flex items-start justify-between">
-                <CardTitle className="text-lg font-bold leading-tight text-gray-900 dark:text-white">
-                  <Link 
-                    href={`/problems/${problem.id}`}
-                    className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2"
-                  >
-                    {problem.title}
-                  </Link>
+                <CardTitle className="text-lg font-bold leading-tight text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2">
+                  {problem.title}
                 </CardTitle>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {bookmarks.includes(problem.id) && (
@@ -146,6 +159,7 @@ export function ProblemList({ problems, userProgress = {}, bookmarks = [] }: Pro
               </div>
             </CardContent>
           </Card>
+          </Link>
         ))}
       </div>
 
