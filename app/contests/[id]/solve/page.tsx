@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { supabase } from '@/lib/supabase/client';
-import { Clock, Video, VideoOff, Mic, MicOff, Maximize, AlertCircle } from 'lucide-react';
+import { Clock, Video, VideoOff, Mic, MicOff, Maximize, AlertCircle, LogOut } from 'lucide-react';
 import { ProblemSolver } from '@/components/problem-solver/ProblemSolver';
 
 const EMPTY_SUBMISSIONS: any[] = [];
@@ -21,6 +21,7 @@ export default function ContestSolvePage() {
   const [loading, setLoading] = useState(true);
   const [timeLeft, setTimeLeft] = useState('Loading...');
   const [isEnded, setIsEnded] = useState(false);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // WebRTC State
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -208,6 +209,19 @@ export default function ContestSolvePage() {
     }
   };
 
+  // Handle exit contest
+  const handleExitContest = () => {
+    // Cleanup WebRTC before leaving
+    if (localStream) {
+      localStream.getTracks().forEach(t => t.stop());
+    }
+    Object.values(peerConnections.current).forEach(pc => pc.close());
+    if (channelRef.current) {
+      supabase.removeChannel(channelRef.current);
+    }
+    router.push(`/contests/${params.id}`);
+  };
+
   if (loading) {
     return (
       <div className="h-screen bg-gray-900 flex items-center justify-center text-white">
@@ -226,14 +240,22 @@ export default function ContestSolvePage() {
           <span className="text-gray-400 text-sm">| {contest?.title}</span>
         </div>
         
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 font-mono text-xl font-bold">
             <Clock className={`w-5 h-5 ${timeLeft.startsWith('00:0') ? 'text-red-500 animate-pulse' : 'text-gray-400'}`} />
             <span className={timeLeft.startsWith('00:0') ? 'text-red-500' : 'text-white'}>{timeLeft}</span>
           </div>
-          {isEnded && (
-            <button onClick={() => router.push(`/contests/${params.id}`)} className="bg-white text-black px-4 py-1.5 rounded-md font-bold text-sm">
+          {isEnded ? (
+            <button onClick={() => router.push(`/contests/${params.id}`)} className="bg-white text-black px-4 py-1.5 rounded-md font-bold text-sm hover:bg-gray-200 transition">
               Exit to Lobby
+            </button>
+          ) : (
+            <button 
+              onClick={() => setShowExitConfirm(true)} 
+              className="flex items-center gap-2 bg-red-600/20 border border-red-500/50 text-red-400 px-4 py-1.5 rounded-md font-medium text-sm hover:bg-red-600/30 hover:text-red-300 transition"
+            >
+              <LogOut className="w-4 h-4" />
+              Exit Contest
             </button>
           )}
         </div>
@@ -341,6 +363,37 @@ export default function ContestSolvePage() {
           </div>
         </div>
       </div>
+
+      {/* Exit Confirmation Modal */}
+      {showExitConfirm && (
+        <div className="fixed inset-0 z-[100] bg-black/70 backdrop-blur-sm flex items-center justify-center">
+          <div className="bg-gray-900 border border-gray-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center">
+                <AlertCircle className="w-5 h-5 text-red-400" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Exit Contest?</h3>
+            </div>
+            <p className="text-gray-400 mb-6">
+              Are you sure you want to leave this contest? You will not be able to rejoin, and your submissions will be final.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowExitConfirm(false)}
+                className="flex-1 bg-gray-800 text-gray-300 px-4 py-2.5 rounded-lg font-medium hover:bg-gray-700 transition"
+              >
+                Continue Contest
+              </button>
+              <button
+                onClick={handleExitContest}
+                className="flex-1 bg-red-600 text-white px-4 py-2.5 rounded-lg font-medium hover:bg-red-700 transition"
+              >
+                Exit Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
