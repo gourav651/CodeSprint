@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase/server';
-import { executeCode } from '@/lib/judge0/client';
+import { executeCode } from '@/lib/execute/client';
 import { auth } from '@clerk/nextjs/server';
 import { checkAndPersistBadges } from '@/lib/badges/checkAndPersistBadges';
 
@@ -62,37 +62,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Execute code against test cases using Piston (synchronous — no polling needed)
+    // Execute code against test cases in parallel (to stay within Vercel's 10s free-tier limit)
     let allPassed = true;
     let totalTime = 0;
     let maxMemory = 0;
     let errorMessage = '';
 
-    for (const testCase of testCases) {
-      try {
-        const result = await executeCode(submissionCode, language, testCase.input);
-
-        if (result.status.id !== 3) { // Not accepted
-          allPassed = false;
-          errorMessage = result.stderr || result.compile_output || 'Runtime error';
-          break;
+    const executionResults = await Promise.all(
+      testCases.map(async (testCase) => {
+        try {
+          const result = await executeCode(submissionCode, language, testCase.input);
+          return { result, testCase, error: null };
+        } catch (err) {
+          return {
+            result: null,
+            testCase,
+            error: err instanceof Error ? err.message : JSON.stringify(err),
+          };
         }
+      })
+    );
 
-        if (result.stdout?.trim() !== testCase.expected_output.trim()) {
-          allPassed = false;
-          errorMessage = 'Wrong Answer';
-          break;
-        }
-
-        totalTime += parseFloat(result.time || '0');
-        maxMemory = Math.max(maxMemory, result.memory || 0);
-
-      } catch (err) {
+    for (const { result, testCase, error: execError } of executionResults) {
+      if (execError || !result) {
         allPassed = false;
-        errorMessage = err instanceof Error ? err.message : JSON.stringify(err);
-        console.error('Test case execution error:', err);
+        errorMessage = execError || 'Execution failed';
+        console.error('Test case execution error:', execError);
         break;
       }
+
+      if (result.status.id !== 3) { // Not accepted
+        allPassed = false;
+        errorMessage = result.stderr || result.compile_output || 'Runtime error';
+        break;
+      }
+
+      if (result.stdout?.trim() !== testCase.expected_output.trim()) {
+        allPassed = false;
+        errorMessage = 'Wrong Answer';
+        break;
+      }
+
+      totalTime += parseFloat(result.time || '0');
+      maxMemory = Math.max(maxMemory, result.memory || 0);
     }
 
     // Update submission

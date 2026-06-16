@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  piston:
+    image: ghcr.io/engineer-man/piston:latest
+    container_name: piston
+    restart: unless-stopped
+    ports:
+      - "2000:2000"
+    environment:
+      - PISTON_DISABLE_NETWORKING=true
+      - PISTON_MAX_CONCURRENT_JOBS=4
+      - PISTON_COMPILATION_TIMEOUT=5000
+      - PISTON_RUN_TIMEOUT=5000
+      - PISTON_OUTPUT_MAX_SIZE=1024000
+    tmpfs:
+      - /tmp:piston:size=256m
+    # Resource limits for safety on free tier
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'

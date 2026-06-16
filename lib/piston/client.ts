@@ -1,3 +1,10 @@
+/**
+ * @deprecated Use `lib/execute/client.ts` instead.
+ *
+ * This file is kept for reference only. All code execution is now handled
+ * by the unified client at `lib/execute/client.ts` which supports both
+ * Piston and Judge0 backends via the EXECUTION_BACKEND env variable.
+ */
 import axios from "axios";
 
 // Use env variable if set, otherwise fall back to the public Piston API

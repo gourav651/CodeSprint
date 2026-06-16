@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { executeCode } from '@/lib/judge0/client';
+import { executeCode } from '@/lib/execute/client';
 import { supabaseServer } from '@/lib/supabase/server';
 
 // Note: We no longer wrap user code with hardcoded test cases.
 // Instead, we expect the code to already include proper I/O handling
 // from the starter code template stored in the database.
 
-// Helper function to preprocess Java code for Piston
+// Helper function to preprocess Java code
 function preprocessJavaCode(code: string): string {
   // Check if the code contains a public class
   const classMatch = code.match(/public\s+class\s+(\w+)/);
@@ -58,52 +58,52 @@ export async function POST(request: NextRequest) {
       console.log('Fetched test cases from Supabase:', cases);
     }
 
-    // If testCases is provided and is an array, run all test cases
+    // Run all test cases in parallel (to stay within Vercel's 10s free-tier limit)
     if (Array.isArray(cases) && cases.length > 0) {
-      const results = [];
-      for (const testCase of cases) {
-        try {
-          console.log('Sending code to Piston:', { language, input: testCase.input });
-          
-          // Piston returns results synchronously — no polling needed!
-          const result = await executeCode(processedCode, language, testCase.input);
-          
-          console.log('Piston result:', result);
-          
-          results.push({
-            input: testCase.input,
-            expectedOutput: testCase.expected_output,
-            actualOutput: result.stdout,
-            passed: (result.stdout?.trim() ?? '') === (testCase.expected_output?.trim() ?? ''),
-            status: result.status.description,
-            stderr: result.stderr,
-            compile_output: result.compile_output,
-            time: result.time,
-            memory: result.memory
-          });
-        } catch (error) {
-          console.error('Error executing test case:', error);
-          results.push({
-            input: testCase.input,
-            expectedOutput: testCase.expected_output,
-            actualOutput: '',
-            passed: false,
-            status: 'Error',
-            stderr: error instanceof Error ? error.message : 'Unknown error',
-            compile_output: null,
-            time: null,
-            memory: null
-          });
-        }
-      }
+      const results = await Promise.all(
+        cases.map(async (testCase) => {
+          try {
+            console.log('Executing test case:', { language, input: testCase.input });
+
+            const result = await executeCode(processedCode, language, testCase.input);
+
+            console.log('Execution result:', result);
+
+            return {
+              input: testCase.input,
+              expectedOutput: testCase.expected_output,
+              actualOutput: result.stdout,
+              passed: (result.stdout?.trim() ?? '') === (testCase.expected_output?.trim() ?? ''),
+              status: result.status.description,
+              stderr: result.stderr,
+              compile_output: result.compile_output,
+              time: result.time,
+              memory: result.memory
+            };
+          } catch (error) {
+            console.error('Error executing test case:', error);
+            return {
+              input: testCase.input,
+              expectedOutput: testCase.expected_output,
+              actualOutput: '',
+              passed: false,
+              status: 'Error',
+              stderr: error instanceof Error ? error.message : 'Unknown error',
+              compile_output: null,
+              time: null,
+              memory: null
+            };
+          }
+        })
+      );
       return NextResponse.json({ results });
     }
 
     // Fallback: single input execution
     console.log('Single input fallback:', { language, input });
     const result = await executeCode(processedCode, language, input);
-    
-    console.log('Piston single result:', result);
+
+    console.log('Single result:', result);
     return NextResponse.json({
       status: result.status.description,
       stdout: result.stdout,
